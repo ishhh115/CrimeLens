@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrimeLens — India Crime Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-shape bg-shape-a"></div>
+    <div class="bg-shape bg-shape-b"></div>
+    <header class="hero">
+        <p class="hero-kicker">NCRB Data Intelligence</p>
+        <h1>CrimeLens</h1>
+        <p class="hero-sub">Hyperlocal Crime Pattern Analyzer for Indian States (2001-2012)</p>
+    </header>
+
+    <main>
+        <section class="stats-strip">
+            <div class="pill">Real NCRB Dataset</div>
+            <div class="pill">Flask + Chart.js</div>
+            <div class="pill">ML Prediction View</div>
+        </section>
+
+        <div class="grid">
+            <div class="card full-width">
+    <h2>State Risk Levels (Random Forest ML)</h2>
+    <div id="riskCards" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;"></div>
+</div>
+            <div class="card">
+                <h2>State-wise Total Crimes</h2>
+                <div class="chart-wrap">
+                    <canvas id="stateChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Year-wise Crime Trend</h2>
+                <div class="chart-wrap">
+                    <canvas id="yearChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Crime Type Breakdown</h2>
+                <div class="chart-wrap">
+                    <canvas id="crimeTypeChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Crimes Against Women (Year-wise)</h2>
+                <div class="chart-wrap">
+                    <canvas id="womenChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <h2>Crime Prediction by State (ML)</h2>
+                <div class="predict-controls">
+                    <select id="stateSelect">
+                        <option>Loading states...</option>
+                    </select>
+                    <button onclick="loadPrediction()">Predict</button>
+                </div>
+                <div class="chart-wrap chart-wrap-wide">
+                    <canvas id="predictChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ---- HELPER ----
+        async function fetchJSON(url) {
+            const res = await fetch(url);
+            return res.json();
+        }
+
+        // ---- STATE CHART ----
+        async function loadStateChart() {
+    try {
+    const data = await fetchJSON('/api/state-crimes');
+            const top10 = data.slice(0, 10);
+            new Chart(document.getElementById('stateChart'), {
+                type: 'bar',
+                data: {
+                    labels: top10.map(d => d['STATE/UT']),
+                    datasets: [{
+                        label: 'Total IPC Crimes',
+                        data: top10.map(d => d['TOTAL IPC CRIMES']),
+                        backgroundColor: '#c1121f',
+                        borderRadius: 10
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+            } catch(e) { console.error('State chart failed:', e); }
+
+        }
+
+        // ---- YEAR TREND CHART ----
+        async function loadYearChart() {
+            const data = await fetchJSON('/api/year-trend');
+            new Chart(document.getElementById('yearChart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d['YEAR']),
+                    datasets: [{
+                        label: 'Total IPC Crimes',
+                        data: data.map(d => d['TOTAL IPC CRIMES']),
+                        borderColor: '#9d0208',
+                        fill: true,
+                        backgroundColor: 'rgba(193, 18, 31, 0.14)',
+                        tension: 0.3
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // ---- CRIME TYPE CHART ----
+        async function loadCrimeTypeChart() {
+            const data = await fetchJSON('/api/crime-types');
+            new Chart(document.getElementById('crimeTypeChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: data.map(d => d['crime_type']),
+                    datasets: [{
+                        data: data.map(d => d['count']),
+                        backgroundColor: [
+                            '#c1121f', '#e5383b', '#9d0208', '#780000',
+                            '#f77f00', '#fcbf49', '#d62828', '#c44536',
+                            '#003049', '#669bbc'
+                        ]
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // ---- WOMEN CRIMES CHART ----
+        async function loadWomenChart() {
+            const data = await fetchJSON('/api/women-crimes');
+            new Chart(document.getElementById('womenChart'), {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d['YEAR']),
+                    datasets: [{
+                        label: 'Crimes Against Women',
+                        data: data.map(d => d['CRIMES_AGAINST_WOMEN']),
+                        borderColor: '#780000',
+                        fill: true,
+                        backgroundColor: 'rgba(120, 0, 0, 0.12)',
+                        tension: 0.3
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // ---- STATES DROPDOWN ----
+        async function loadStates() {
+            const states = await fetchJSON('/api/states');
+            const select = document.getElementById('stateSelect');
+            select.innerHTML = states.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        // ---- PREDICTION CHART ----
+        async function loadPrediction() {
+            const state = document.getElementById('stateSelect').value;
+            const data = await fetchJSON(`/api/predict/${state}`);
+            
+            const histLabels = data.historical.map(d => d['YEAR']);
+            const histData = data.historical.map(d => d['TOTAL IPC CRIMES']);
+            const predLabels = data.predictions.map(d => d['year']);
+            const predData = data.predictions.map(d => d['predicted_crimes']);
+
+            const ctx = document.getElementById('predictChart');
+            if (window.predictChartInstance) window.predictChartInstance.destroy();
+            
+            window.predictChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [...histLabels, ...predLabels],
+                    datasets: [
+                        {
+                            label: 'Historical',
+                            data: [...histData, ...Array(predLabels.length).fill(null)],
+                            borderColor: '#9d0208',
+                            fill: false
+                        },
+                        {
+                            label: 'Predicted',
+                            data: [...Array(histLabels.length).fill(null), ...predData],
+                            borderColor: '#c1121f',
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        async function loadRiskScores() {
+    const container = document.getElementById('riskCards');
+    container.innerHTML = '<p style="color:var(--muted);font-size:14px">Loading risk scores...</p>';
+    try {
+        const data = await fetchJSON('/api/risk-scores');
+        container.innerHTML = '';
+        data.forEach(state => {
+            const card = document.createElement('div');
+            card.className = `risk-card risk-${state.risk_level}`;
+            card.innerHTML = `
+                <div class="state-name">${state['STATE/UT']}</div>
+                <div class="risk-level">${state.risk_level}</div>
+                <div class="crime-rate">${state.crime_rate_per_lakh} per lakh</div>
+            `;
+            container.appendChild(card);
+        });
+    } catch(e) {
+        container.innerHTML = '<p style="color:#c1121f;font-size:14px">Failed to load risk scores. Please refresh.</p>';
+    }
+}
+
+
+        // ---- INIT ----
+        loadRiskScores();
+        loadStateChart();
+        loadYearChart();
+        loadCrimeTypeChart();
+        loadWomenChart();
+        loadStates();
+
+    </script>
+</body>
+</html>
