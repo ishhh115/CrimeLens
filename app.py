@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, render_template
 from analysis import load_data, state_wise_crimes, year_wise_trend, crime_type_breakdown, crimes_against_women
-from model import predict_crimes, get_all_states, get_risk_scores
+from model import predict_risk, get_all_states
 
 app = Flask(__name__)
 df = load_data()
@@ -27,7 +27,7 @@ def api_women_crimes():
 
 @app.route('/api/predict/<state>')
 def api_predict(state):
-    result = predict_crimes(df, state.upper())
+    result = predict_risk(df, state.upper())
     if result is None:
         return jsonify({'error': 'Not enough data'}), 400
     return jsonify(result)
@@ -38,7 +38,8 @@ def api_states():
 
 @app.route('/api/risk-scores')
 def api_risk_scores():
-    return jsonify(get_risk_scores(df))
+    from analysis import state_risk_scores
+    return jsonify(state_risk_scores(df))
 
 if __name__ == '__main__':
     app.run(debug=True)

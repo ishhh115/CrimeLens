@@ -81,3 +81,29 @@ def crimes_against_women(df):
     df['CRIMES_AGAINST_WOMEN'] = df[women_cols].sum(axis=1)
     caw = df.groupby('YEAR')['CRIMES_AGAINST_WOMEN'].sum().reset_index()
     return caw.to_dict(orient='records')
+
+def state_risk_scores(df):
+    # Get total crimes per state
+    state_data = df.groupby('STATE/UT')['TOTAL IPC CRIMES'].sum().reset_index()
+    
+    # Normalize to 0-100 score
+    max_crimes = state_data['TOTAL IPC CRIMES'].max()
+    min_crimes = state_data['TOTAL IPC CRIMES'].min()
+    
+    state_data['risk_score'] = ((state_data['TOTAL IPC CRIMES'] - min_crimes) / 
+                                 (max_crimes - min_crimes) * 100).round(1)
+    
+    # Assign risk level based on score
+    def get_risk_level(score):
+        if score <= 25:
+            return 'Low'
+        elif score <= 50:
+            return 'Medium'
+        elif score <= 75:
+            return 'High'
+        else:
+            return 'Critical'
+    
+    state_data['risk_level'] = state_data['risk_score'].apply(get_risk_level)
+    state_data = state_data.sort_values('risk_score', ascending=False)
+    return state_data.to_dict(orient='records')

@@ -2,91 +2,93 @@ import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-import joblib
-import os
-from analysis import get_state_features
 
-def assign_risk_label(crime_rate):
-    if crime_rate < 3000:
-        return 'Low'
-    elif crime_rate < 6000:
-        return 'Medium'
-    elif crime_rate < 10000:
-        return 'High'
-    else:
-        return 'Critical'
+def build_features(df):
+    # Group by state and year
+    state_year = df.groupby(['STATE/UT', 'YEAR']).agg(
+        total_crimes=('TOTAL IPC CRIMES', 'sum'),
+        murder=('MURDER', 'sum'),
+        rape=('RAPE', 'sum'),
+        theft=('THEFT', 'sum'),
+        robbery=('ROBBERY', 'sum'),
+        riots=('RIOTS', 'sum')
+    ).reset_index()
 
-def train_and_save_model(df):
-    features = get_state_features(df)
-    features['risk_label'] = features['crime_rate_per_lakh'].apply(assign_risk_label)
+    # Feature 1: violent crime ratio
+    state_year['violent_ratio'] = (
+        (state_year['murder'] + state_year['rape'] + state_year['robbery']) /
+        state_year['total_crimes']
+    ).fillna(0)
 
-    X = features[['crime_rate_per_lakh', 'avg_yoy_change', 'total_crimes']]
-    y = features['risk_label']
+    # Feature 2: year on year change
+    state_year = state_year.sort_values(['STATE/UT', 'YEAR'])
+    state_year['yoy_change'] = state_year.groupby('STATE/UT')['total_crimes'].pct_change().fillna(0)
 
+    # Feature 3: normalize total crimes to 0-100
+    max_c = state_year['total_crimes'].max()
+    min_c = state_year['total_crimes'].min()
+    state_year['crime_score'] = ((state_year['total_crimes'] - min_c) / (max_c - min_c) * 100)
+
+    # Create risk label based on crime_score
+    def get_risk(score):
+        if score <= 25: return 'Low'
+        elif score <= 50: return 'Medium'
+        elif score <= 75: return 'High'
+        else: return 'Critical'
+
+    state_year['risk_level'] = state_year['crime_score'].apply(get_risk)
+    return state_year
+
+def train_model(df):
+    features = build_features(df)
+
+    X = features[['crime_score', 'violent_ratio', 'yoy_change', 'theft', 'murder']]
+    y = features['risk_level']
+
+    # Encode labels (Low/Medium/High/Critical → 0/1/2/3)
     le = LabelEncoder()
     y_encoded = le.fit_transform(y)
 
+    # Train Random Forest
     model = RandomForestClassifier(n_estimators=100, random_state=42)
     model.fit(X, y_encoded)
 
-    joblib.dump(model, 'crime_model.pkl')
-    joblib.dump(le, 'label_encoder.pkl')
-    print("Model trained and saved!")
     return model, le, features
 
-def load_model():
-    if os.path.exists('crime_model.pkl'):
-        model = joblib.load('crime_model.pkl')
-        le = joblib.load('label_encoder.pkl')
-        return model, le
-    return None, None
+def predict_risk(df, state):
+    model, le, features = train_model(df)
 
-def get_risk_scores(df):
-    model, le = load_model()
-    if model is None:
-        train_and_save_model(df)
-        model, le = load_model()
-
-    features = get_state_features(df)
-    X = features[['crime_rate_per_lakh', 'avg_yoy_change', 'total_crimes']]
-
-    predictions = model.predict(X)
-    risk_labels = le.inverse_transform(predictions)
-
-    features['risk_level'] = risk_labels
-    features['risk_label_manual'] = features['crime_rate_per_lakh'].apply(assign_risk_label)
-
-    result = features[['STATE/UT', 'crime_rate_per_lakh', 'avg_yoy_change', 'risk_level']].copy()
-    result = result.sort_values('crime_rate_per_lakh', ascending=False)
-    return result.to_dict(orient='records')
-
-def predict_crimes(df, state):
-    state_df = df[df['STATE/UT'] == state]
-    yearly = state_df.groupby('YEAR')['TOTAL IPC CRIMES'].sum().reset_index()
-
-    if len(yearly) < 2:
+    state_data = features[features['STATE/UT'] == state]
+    if state_data.empty:
         return None
 
-    from sklearn.linear_model import LinearRegression
-    X = yearly['YEAR'].values.reshape(-1, 1)
-    y = yearly['TOTAL IPC CRIMES'].values
-    reg = LinearRegression()
-    reg.fit(X, y)
+    latest = state_data.sort_values('YEAR').iloc[-1]
 
-    future_years = np.array([[2015], [2016], [2017]])
-    predictions = reg.predict(future_years)
+    X_pred = pd.DataFrame([{
+        'crime_score': latest['crime_score'],
+        'violent_ratio': latest['violent_ratio'],
+        'yoy_change': latest['yoy_change'],
+        'theft': latest['theft'],
+        'murder': latest['murder']
+    }])
 
-    result = []
-    for year, pred in zip(future_years.flatten(), predictions):
-        result.append({
-            'year': int(year),
-            'predicted_crimes': int(pred)
-        })
+    pred_encoded = model.predict(X_pred)[0]
+    pred_proba = model.predict_proba(X_pred)[0]
+    risk_level = le.inverse_transform([pred_encoded])[0]
+    confidence = round(max(pred_proba) * 100, 1)
+
+    historical = state_data[['YEAR', 'total_crimes', 'risk_level']].to_dict(orient='records')
 
     return {
         'state': state,
-        'historical': yearly.to_dict(orient='records'),
-        'predictions': result
+        'predicted_risk': risk_level,
+        'confidence': confidence,
+        'historical': historical,
+        'feature_importance': {
+            'crime_score': round(latest['crime_score'], 1),
+            'violent_ratio': round(latest['violent_ratio'], 3),
+            'yoy_change': round(latest['yoy_change'], 3)
+        }
     }
 
 def get_all_states(df):
