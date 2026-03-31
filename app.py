@@ -9,6 +9,14 @@ df = load_data()
 def index():
     return render_template('index.html')
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+@app.route('/insights')
+def insights():
+    return render_template('insights.html')
+
 @app.route('/api/state-crimes')
 def api_state_crimes():
     return jsonify(state_wise_crimes(df))
@@ -40,6 +48,16 @@ def api_states():
 def api_risk_scores():
     from analysis import state_risk_scores
     return jsonify(state_risk_scores(df))
+
+@app.route('/api/anomalies')
+def api_anomalies():
+    from analysis import detect_anomalies
+    return jsonify(detect_anomalies(df))
+
+@app.route('/api/policy-insights')
+def api_policy_insights():
+    from analysis import policy_insights
+    return jsonify(policy_insights(df))
 
 if __name__ == '__main__':
     app.run(debug=True)

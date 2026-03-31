@@ -107,3 +107,74 @@ def state_risk_scores(df):
     state_data['risk_level'] = state_data['risk_score'].apply(get_risk_level)
     state_data = state_data.sort_values('risk_score', ascending=False)
     return state_data.to_dict(orient='records')
+
+def detect_anomalies(df):
+    # Group by state and year
+    state_year = df.groupby(['STATE/UT', 'YEAR'])['TOTAL IPC CRIMES'].sum().reset_index()
+    
+    anomalies = []
+    
+    for state in state_year['STATE/UT'].unique():
+        state_data = state_year[state_year['STATE/UT'] == state].sort_values('YEAR')
+        
+        mean = state_data['TOTAL IPC CRIMES'].mean()
+        std = state_data['TOTAL IPC CRIMES'].std()
+        
+        if std == 0:
+            continue
+            
+        for _, row in state_data.iterrows():
+            z_score = (row['TOTAL IPC CRIMES'] - mean) / std
+            # z_score > 2 = unusually high, < -2 = unusually low
+            if abs(z_score) > 1.5:
+                anomalies.append({
+                    'state': row['STATE/UT'],
+                    'year': int(row['YEAR']),
+                    'total_crimes': int(row['TOTAL IPC CRIMES']),
+                    'z_score': round(float(z_score), 2),
+                    'type': 'unusually high' if z_score > 0 else 'unusually low',
+                    'message': f"{int(row['YEAR'])} was {('unusually high' if z_score > 0 else 'unusually low')} vs historical trend (z={round(float(z_score),2)})"
+                })
+    
+    return sorted(anomalies, key=lambda x: abs(x['z_score']), reverse=True)
+
+def policy_insights(df):
+    crime_cols = [
+        'MURDER', 'RAPE', 'KIDNAPPING & ABDUCTION',
+        'ROBBERY', 'BURGLARY', 'THEFT', 'RIOTS',
+        'DOWRY DEATHS', 'ARSON', 'CHEATING'
+    ]
+    
+    state_data = df.groupby('STATE/UT')[crime_cols + ['TOTAL IPC CRIMES']].sum()
+    
+    insights = []
+    for state, row in state_data.iterrows():
+        total = row['TOTAL IPC CRIMES']
+        if total == 0:
+            continue
+        
+        # Find dominant crime type
+        crime_counts = {col: row[col] for col in crime_cols}
+        dominant_crime = max(crime_counts, key=crime_counts.get)
+        dominant_pct = round(crime_counts[dominant_crime] / total * 100, 1)
+        
+        # Find fastest growing concern
+        if dominant_crime in ['RAPE', 'DOWRY DEATHS', 'KIDNAPPING & ABDUCTION']:
+            focus = f"Priority: Women safety — {dominant_crime.title()} accounts for {dominant_pct}% of crimes"
+        elif dominant_crime == 'THEFT':
+            focus = f"Focus: Theft reduction — accounts for {dominant_pct}% of all crimes"
+        elif dominant_crime == 'MURDER':
+            focus = f"Alert: Violent crime — Murder is dominant at {dominant_pct}% of crimes"
+        elif dominant_crime == 'CHEATING':
+            focus = f"Focus: Economic crime — Cheating/fraud accounts for {dominant_pct}% of crimes"
+        else:
+            focus = f"Focus: {dominant_crime.title()} reduction — accounts for {dominant_pct}% of crimes"
+        
+        insights.append({
+            'state': state,
+            'dominant_crime': dominant_crime,
+            'dominant_pct': dominant_pct,
+            'policy': focus
+        })
+    
+    return sorted(insights, key=lambda x: x['dominant_pct'], reverse=True)

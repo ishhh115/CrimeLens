@@ -79,6 +79,34 @@ def predict_risk(df, state):
 
     historical = state_data[['YEAR', 'total_crimes', 'risk_level']].to_dict(orient='records')
 
+    feature_names = ['crime_score', 'violent_ratio', 'yoy_change', 'theft', 'murder']
+    importances = model.feature_importances_
+    
+    feature_impact = sorted(
+        zip(feature_names, importances),
+        key=lambda x: x[1],
+        reverse=True
+    )
+    
+    def explain_feature(name, value, importance):
+        explanations = {
+            'crime_score': f"Overall crime volume is {'very high' if value > 75 else 'high' if value > 50 else 'moderate' if value > 25 else 'low'} at {round(value, 1)}/100",
+            'violent_ratio': f"Violent crimes make up {round(value*100, 1)}% of all crimes — {'concerning' if value > 0.1 else 'within normal range'}",
+            'yoy_change': f"Crime {'increased' if value > 0 else 'decreased'} by {round(abs(value)*100, 1)}% compared to previous year",
+            'theft': f"Theft cases: {int(value):,} — {'dominant crime type' if value > 50000 else 'significant contributor'}",
+            'murder': f"Murder cases: {int(value):,} — {'high' if value > 2000 else 'moderate' if value > 500 else 'relatively low'}"
+        }
+        return {
+            'feature': name,
+            'importance': round(float(importance) * 100, 1),
+            'explanation': explanations[name]
+        }
+    
+    top3_reasons = [
+        explain_feature(name, latest[name], imp)
+        for name, imp in feature_impact[:3]
+    ]
+
     return {
         'state': state,
         'predicted_risk': risk_level,
@@ -88,7 +116,8 @@ def predict_risk(df, state):
             'crime_score': round(latest['crime_score'], 1),
             'violent_ratio': round(latest['violent_ratio'], 3),
             'yoy_change': round(latest['yoy_change'], 3)
-        }
+        },
+        'why_prediction': top3_reasons
     }
 
 def get_all_states(df):
