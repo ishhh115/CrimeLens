@@ -122,3 +122,28 @@ def predict_risk(df, state):
 
 def get_all_states(df):
     return sorted(df['STATE/UT'].unique().tolist())
+
+def get_model_accuracy(df):
+    from sklearn.model_selection import train_test_split
+    from sklearn.metrics import accuracy_score
+    
+    features = build_features(df)
+    
+    X = features[['crime_score', 'violent_ratio', 'yoy_change', 'theft', 'murder']]
+    y = features['risk_level']
+    
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+    
+    # Split 80% train, 20% test
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y_encoded, test_size=0.2, random_state=42
+    )
+    
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    accuracy = round(accuracy_score(y_test, y_pred) * 100, 1)
+    
+    return {'accuracy': accuracy}

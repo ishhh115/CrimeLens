@@ -59,5 +59,10 @@ def api_policy_insights():
     from analysis import policy_insights
     return jsonify(policy_insights(df))
 
+@app.route('/api/accuracy')
+def api_accuracy():
+    from model import get_model_accuracy
+    return jsonify(get_model_accuracy(df))
+
 if __name__ == '__main__':
     app.run(debug=True)
