@@ -64,5 +64,14 @@ def api_accuracy():
     from model import get_model_accuracy
     return jsonify(get_model_accuracy(df))
 
+@app.route('/api/choropleth')
+def api_choropleth():
+    from analysis import generate_choropleth
+    return generate_choropleth(df)
+
+@app.route('/map')
+def map_page():
+    return render_template('map.html')
+
 if __name__ == '__main__':
     app.run(debug=True)

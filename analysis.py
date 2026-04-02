@@ -178,3 +178,67 @@ def policy_insights(df):
         })
     
     return sorted(insights, key=lambda x: x['dominant_pct'], reverse=True)
+
+def generate_choropleth(df):
+    import folium
+
+    state_data = df.groupby('STATE/UT')['TOTAL IPC CRIMES'].sum().reset_index()
+    max_c = state_data['TOTAL IPC CRIMES'].max()
+    min_c = state_data['TOTAL IPC CRIMES'].min()
+    state_data['risk_score'] = ((state_data['TOTAL IPC CRIMES'] - min_c) / (max_c - min_c) * 100).round(1)
+
+    # Fix state names to match GeoJSON
+    name_map = {
+        'ANDHRA PRADESH': 'Andhra Pradesh',
+        'ARUNACHAL PRADESH': 'Arunachal Pradesh',
+        'ASSAM': 'Assam',
+        'BIHAR': 'Bihar',
+        'CHHATTISGARH': 'Chhattisgarh',
+        'GOA': 'Goa',
+        'GUJARAT': 'Gujarat',
+        'HARYANA': 'Haryana',
+        'HIMACHAL PRADESH': 'Himachal Pradesh',
+        'JAMMU & KASHMIR': 'Jammu and Kashmir',
+        'JHARKHAND': 'Jharkhand',
+        'KARNATAKA': 'Karnataka',
+        'KERALA': 'Kerala',
+        'MADHYA PRADESH': 'Madhya Pradesh',
+        'MAHARASHTRA': 'Maharashtra',
+        'MANIPUR': 'Manipur',
+        'MEGHALAYA': 'Meghalaya',
+        'MIZORAM': 'Mizoram',
+        'NAGALAND': 'Nagaland',
+        'ODISHA': 'Odisha',
+        'PUNJAB': 'Punjab',
+        'RAJASTHAN': 'Rajasthan',
+        'SIKKIM': 'Sikkim',
+        'TAMIL NADU': 'Tamil Nadu',
+        'TRIPURA': 'Tripura',
+        'UTTAR PRADESH': 'Uttar Pradesh',
+        'UTTARAKHAND': 'Uttarakhand',
+        'WEST BENGAL': 'West Bengal',
+        'DELHI UT': 'NCT of Delhi',
+    }
+
+    state_data['state_name'] = state_data['STATE/UT'].map(name_map)
+    state_data = state_data.dropna(subset=['state_name'])
+
+    geojson_url = 'data/india_states.geojson'
+
+    m = folium.Map(location=[20.5937, 78.9629], zoom_start=4, tiles='CartoDB positron')
+
+    folium.Choropleth(
+        geo_data=geojson_url,
+        name='Crime Risk',
+        data=state_data,
+        columns=['state_name', 'risk_score'],
+        key_on='feature.properties.NAME_1',
+        fill_color='YlOrRd',
+        fill_opacity=0.8,
+        line_opacity=0.3,
+        legend_name='Crime Risk Score (0-100)',
+        nan_fill_color='#f0f0f0'
+    ).add_to(m)
+
+    folium.LayerControl().add_to(m)
+    return m._repr_html_()

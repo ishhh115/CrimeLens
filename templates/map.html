@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crime Map - CrimeLens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        #map-container {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e5383b20;
+        }
+        #map-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-shape bg-shape-a"></div>
+    <div class="bg-shape bg-shape-b"></div>
+
+    <nav class="site-nav">
+        <a href="/" class="brand">CrimeLens</a>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/map">Crime Map</a>
+            <a href="/about">About</a>
+            <a href="/insights">Insights</a>
+        </div>
+    </nav>
+
+    <main class="page-main">
+        <section class="page-card">
+            <h1>🗺️ India Crime Risk Map</h1>
+            <p>Interactive choropleth map showing crime risk scores across Indian states. Darker red = higher risk.</p>
+        </section>
+
+        <section class="page-card">
+            <div id="map-container">
+                <p style="padding:20px;color:#888;">Loading map...</p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <p>CrimeLens • Data-driven safety intelligence</p>
+    </footer>
+
+    <script>
+        async function loadMap() {
+            const res = await fetch('/api/choropleth');
+            const html = await res.text();
+            const container = document.getElementById('map-container');
+            const iframe = document.createElement('iframe');
+            container.innerHTML = '';
+            container.appendChild(iframe);
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(html);
+            iframe.contentDocument.close();
+        }
+        loadMap();
+    </script>
+</body>
+</html>
