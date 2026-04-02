@@ -242,3 +242,62 @@ def generate_choropleth(df):
 
     folium.LayerControl().add_to(m)
     return m._repr_html_()
+
+def state_action_brief(df, state):
+    from model import predict_risk
+    
+    # Get prediction
+    prediction = predict_risk(df, state)
+    if prediction is None:
+        return None
+    
+    # Get anomalies for this state
+    anomalies = detect_anomalies(df)
+    state_anomalies = [a for a in anomalies if a['state'] == state]
+    
+    # Get policy insight for this state
+    insights = policy_insights(df)
+    state_insight = next((i for i in insights if i['state'] == state), None)
+    
+    # Get crimes against women trend
+    state_df = df[df['STATE/UT'] == state]
+    women_cols = [
+        'RAPE', 'KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS',
+        'DOWRY DEATHS', 'ASSAULT ON WOMEN WITH INTENT TO OUTRAGE HER MODESTY',
+        'CRUELTY BY HUSBAND OR HIS RELATIVES'
+    ]
+    women_total = state_df[women_cols].sum().sum()
+    total_crimes = state_df['TOTAL IPC CRIMES'].sum()
+    women_pct = round(women_total / total_crimes * 100, 1) if total_crimes > 0 else 0
+
+    # Generate 90-day outlook
+    yoy = prediction['feature_importance']['yoy_change']
+    if yoy > 0.05:
+        outlook = "Rising — intervention recommended within 30 days"
+    elif yoy < -0.05:
+        outlook = "Improving — continue current strategy"
+    else:
+        outlook = "Stable — monitor quarterly"
+
+    # Generate interventions
+    interventions = []
+    if state_insight:
+        interventions.append(f"Priority: Reduce {state_insight['dominant_crime'].title()} — accounts for {state_insight['dominant_pct']}% of crimes")
+    if women_pct > 15:
+        interventions.append(f"Women safety alert: {women_pct}% of crimes target women — fast-track women safety units")
+    if state_anomalies:
+        latest_anomaly = state_anomalies[0]
+        interventions.append(f"Anomaly: {latest_anomaly['message']} — investigate root cause")
+    interventions.append("Deploy predictive patrolling in high-density crime districts")
+
+    return {
+        'state': state,
+        'risk_level': prediction['predicted_risk'],
+        'confidence': prediction['confidence'],
+        'outlook': outlook,
+        'top_drivers': prediction['why_prediction'],
+        'anomaly_alert': state_anomalies[0]['message'] if state_anomalies else 'No anomalies detected',
+        'interventions': interventions,
+        'women_crime_pct': women_pct,
+        'caveat': 'Based on NCRB data 2001-2012. Use alongside current ground intelligence.'
+    }

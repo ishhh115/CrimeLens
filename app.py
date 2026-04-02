@@ -73,5 +73,13 @@ def api_choropleth():
 def map_page():
     return render_template('map.html')
 
+@app.route('/api/action-brief/<state>')
+def api_action_brief(state):
+    from analysis import state_action_brief
+    result = state_action_brief(df, state.upper())
+    if result is None:
+        return jsonify({'error': 'State not found'}), 404
+    return jsonify(result)
+
 if __name__ == '__main__':
     app.run(debug=True)
