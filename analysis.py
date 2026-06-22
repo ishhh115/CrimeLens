@@ -22,6 +22,30 @@ def load_data():
     df1 = pd.read_csv('data/crime_data.csv')
     df2 = pd.read_csv('data/ipc_2013.csv')
     df3 = pd.read_csv('data/ipc_2014.csv')
+    
+    # Align 2014 columns to the standard format to avoid silent dropping
+    df3 = df3.rename(columns={
+        'States/UTs': 'STATE/UT',
+        'District': 'DISTRICT',
+        'Year': 'YEAR',
+        'Murder': 'MURDER',
+        'Rape': 'RAPE',
+        'Theft': 'THEFT',
+        'Robbery': 'ROBBERY',
+        'Riots': 'RIOTS',
+        'Cheating': 'CHEATING',
+        'Arson': 'ARSON',
+        'Dowry Deaths': 'DOWRY DEATHS',
+        'Total Cognizable IPC crimes': 'TOTAL IPC CRIMES',
+        'Kidnapping & Abduction_Total': 'KIDNAPPING & ABDUCTION',
+        'Kidnapping & Abduction of Women to compel her for marriage': 'KIDNAPPING AND ABDUCTION OF WOMEN AND GIRLS',
+        'Assault on Women with intent to outrage her Modesty': 'ASSAULT ON WOMEN WITH INTENT TO OUTRAGE HER MODESTY',
+        'Cruelty by Husband or his Relatives': 'CRUELTY BY HUSBAND OR HIS RELATIVES',
+        'Importation of Girls from Foreign Country': 'IMPORTATION OF GIRLS FROM FOREIGN COUNTRIES',
+        'Causing Death by Negligence': 'CAUSING DEATH BY NEGLIGENCE',
+        'Insult to the Modesty of Women': 'INSULT TO MODESTY OF WOMEN'
+    })
+    
     df = pd.concat([df1, df2, df3], ignore_index=True)
     df.columns = df.columns.str.strip()
     df = df.dropna(subset=['STATE/UT'])
@@ -301,3 +325,44 @@ def state_action_brief(df, state):
         'women_crime_pct': women_pct,
         'caveat': 'Based on NCRB data 2001-2012. Use alongside current ground intelligence.'
     }
+
+def get_state_detailed_summary(df):
+    # Risk scores
+    risk_data = state_risk_scores(df)
+    risk_df = pd.DataFrame(risk_data)
+    
+    # State features
+    features_df = get_state_features(df)
+    
+    # Anomaly counts per state
+    anomalies = detect_anomalies(df)
+    anomaly_counts = {}
+    for a in anomalies:
+        state = a['state']
+        anomaly_counts[state] = anomaly_counts.get(state, 0) + 1
+        
+    # Policy insights mapping
+    insights = policy_insights(df)
+    insights_map = {i['state']: i['policy'] for i in insights}
+    dominant_crime_map = {i['state']: i['dominant_crime'] for i in insights}
+    
+    # Merge
+    merged = risk_df.merge(features_df, on='STATE/UT', how='left')
+    merged['anomaly_count'] = merged['STATE/UT'].map(anomaly_counts).fillna(0).astype(int)
+    
+    result = []
+    for _, row in merged.iterrows():
+        state_name = row['STATE/UT']
+        result.append({
+            'state': state_name,
+            'total_crimes': int(row['TOTAL IPC CRIMES']),
+            'risk_score': float(row['risk_score']),
+            'risk_level': row['risk_level'],
+            'population': int(row['population']) if not pd.isna(row['population']) else 0,
+            'crime_rate': float(row['crime_rate_per_lakh']) if not pd.isna(row['crime_rate_per_lakh']) else 0.0,
+            'yoy_change': float(row['avg_yoy_change']) if not pd.isna(row['avg_yoy_change']) else 0.0,
+            'anomaly_count': int(row['anomaly_count']),
+            'policy_brief': insights_map.get(state_name, 'No critical pattern flagged'),
+            'dominant_crime': dominant_crime_map.get(state_name, 'None')
+        })
+    return result

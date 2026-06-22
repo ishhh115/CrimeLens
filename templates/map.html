@@ -3,68 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crime Map - CrimeLens</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Interactive Map — CrimeLens Case Study</title>
     <link rel="stylesheet" href="/static/style.css">
-    <style>
-        #map-container {
-            width: 100%;
-            height: 600px;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid #e5383b20;
-        }
-        #map-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    </style>
 </head>
 <body>
-    <div class="bg-shape bg-shape-a"></div>
-    <div class="bg-shape bg-shape-b"></div>
 
+    <!-- SYSTEM NAVIGATION -->
     <nav class="site-nav">
         <a href="/" class="brand">CrimeLens</a>
         <div class="nav-links">
-            <a href="/">Dashboard</a>
-            <a href="/map">Crime Map</a>
-            <a href="/about">About</a>
-            <a href="/insights">Insights</a>
+            <a href="/">Case Study</a>
+            <a href="/map" class="active">Interactive Map</a>
+            <a href="/about">About Project</a>
+            <a href="/insights">Technical Insights</a>
         </div>
     </nav>
 
-    <main class="page-main">
-        <section class="page-card">
-            <h1>🗺️ India Crime Risk Map</h1>
-            <p>Interactive choropleth map showing crime risk scores across Indian states. Darker red = higher risk.</p>
-        </section>
+    <div class="case-study-container" style="max-width: 960px; gap: 32px; padding-top: 40px;">
+        
+        <div class="section-header">
+            <span class="section-label">Geospatial // Visualization</span>
+            <h1 class="section-title">Crime Risk Choropleth Map</h1>
+            <p class="section-description">Interactive map displaying model-normalized crime risk scores across Indian boundaries. Darker red indicates elevated risk.</p>
+        </div>
 
-        <section class="page-card">
-            <div id="map-container">
-                <p style="padding:20px;color:#888;">Loading map...</p>
+        <div class="map-panel">
+            <div class="map-container-wrap" id="map-container" style="height: 600px;">
+                <p style="padding: 24px; color: var(--text-muted); font-size: 13px;">Loading interactive map engine...</p>
             </div>
-        </section>
-    </main>
+        </div>
 
-    <footer class="site-footer">
-        <p>CrimeLens • Data-driven safety intelligence</p>
+    </div>
+
+    <!-- SYSTEM FOOTER -->
+    <footer class="site-footer" style="margin-top: 80px;">
+        <p><strong>CrimeLens</strong> Case Study. Built with Flask, Pandas, Scikit-Learn, and Chart.js.</p>
     </footer>
 
     <script>
         async function loadMap() {
-            const res = await fetch('/api/choropleth');
-            const html = await res.text();
             const container = document.getElementById('map-container');
             const iframe = document.createElement('iframe');
             container.innerHTML = '';
             container.appendChild(iframe);
+            
             iframe.contentDocument.open();
-            iframe.contentDocument.write(html);
+            iframe.contentDocument.write('<p style="padding:24px; font-family:sans-serif; color:#64748b;">Loading Choropleth Map Engine...</p>');
             iframe.contentDocument.close();
+
+            try {
+                const res = await fetch('/api/choropleth');
+                const html = await res.text();
+                iframe.contentDocument.open();
+                iframe.contentDocument.write(html);
+                iframe.contentDocument.close();
+            } catch (err) {
+                container.innerHTML = '<p style="padding:24px; color:#b91c1c;">Failed to load spatial map. Please refresh the page.</p>';
+                console.error("Map fetch failed: ", err);
+            }
         }
         loadMap();
     </script>

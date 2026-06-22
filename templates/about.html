@@ -3,52 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About - CrimeLens</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>About — CrimeLens Case Study</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="bg-shape bg-shape-a"></div>
-    <div class="bg-shape bg-shape-b"></div>
 
+    <!-- SYSTEM NAVIGATION -->
     <nav class="site-nav">
         <a href="/" class="brand">CrimeLens</a>
         <div class="nav-links">
-            <a href="/">Dashboard</a>
-            <a href="/about">About</a>
-            <a href="/insights">Insights</a>
+            <a href="/">Case Study</a>
+            <a href="/map">Interactive Map</a>
+            <a href="/about" class="active">About Project</a>
+            <a href="/insights">Technical Insights</a>
         </div>
     </nav>
 
-    <main class="page-main">
-        <section class="page-card">
-            <h1>About CrimeLens</h1>
-            <p>
-                CrimeLens is a data intelligence website that explores Indian NCRB crime records,
-                visualizes long-term trends, and predicts state-level risk categories using a machine learning model.
+    <div class="case-study-container" style="max-width: 800px; gap: 32px; padding-top: 40px;">
+        
+        <div class="section-header">
+            <span class="section-label">Background // Context</span>
+            <h1 class="section-title">About the CrimeLens System</h1>
+            <p class="section-description">A deeper look at the motivations, target problem, and codebase design decisions.</p>
+        </div>
+
+        <div class="panel">
+            <h2 class="chart-title" style="margin-bottom: 12px; font-size: 1.25rem;">Why this project exists</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Law enforcement and civic planning agencies face a perpetual challenge: municipal resource allocation is often reactive rather than preventative. 
+                CrimeLens was built to explore how combining standard historical statistical analysis (z-score testing) with predictive machine learning (Random Forest) 
+                can generate forward-looking insights to optimize patrol density and policy intervention strategies.
             </p>
-        </section>
+            <p style="color: var(--text-secondary);">
+                By compiling NCRB IPC records from 2001 to 2012, this case study uncovers structural trends, matches them against recent data points, 
+                and evaluates classification algorithms to support policy planning.
+            </p>
+        </div>
 
-        <section class="page-card">
-            <h2>What This Website Includes</h2>
-            <ul class="page-list">
-                <li>State-wise and year-wise interactive crime analytics</li>
-                <li>Crime type and women-safety trend visualization</li>
-                <li>Random Forest risk prediction per state</li>
-                <li>Simple, decision-friendly risk levels: Low, Medium, High, Critical</li>
+        <div class="panel">
+            <h2 class="chart-title" style="margin-bottom: 12px; font-size: 1.25rem;">Core Capabilities</h2>
+            <ul class="brief-interventions" style="margin-top: 8px;">
+                <li><strong>Regional Risk Classification:</strong> Categorizes state/UT safety risks from Low to Critical using trained decision trees.</li>
+                <li><strong>YoY Anomaly Detection:</strong> Uses a 1.5 standard deviation z-score ceiling to identify sudden annual shifts in crime report rates.</li>
+                <li><strong>Policy Recommendation Engine:</strong> Automatically profiles state-level dominant crime groups and offers targeted policing focus areas.</li>
+                <li><strong>Spatial Visualization:</strong> Overlays calculated risk bands onto an interactive geographic shapefile mapping Indian state lines.</li>
             </ul>
-        </section>
+        </div>
 
-        <section class="page-card">
-            <h2>Technology Stack</h2>
-            <p>Flask, Pandas, Scikit-learn, HTML/CSS, and Chart.js.</p>
-        </section>
-    </main>
+        <div class="panel">
+            <h2 class="chart-title" style="margin-bottom: 12px; font-size: 1.25rem;">Technical Stack Details</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Designed for speed, portability, and clear recruiter inspection:
+            </p>
+            <div class="tech-strip">
+                <span class="tech-tag">Flask (Python Backend API)</span>
+                <span class="tech-tag">Pandas & NumPy (Data Processing)</span>
+                <span class="tech-tag">Scikit-Learn (RandomForest Model)</span>
+                <span class="tech-tag">Chart.js (Responsive Canvas Visualizations)</span>
+                <span class="tech-tag">Folium (Choropleth Rendering Engine)</span>
+            </div>
+        </div>
 
-    <footer class="site-footer">
-        <p>CrimeLens • Data-driven safety intelligence</p>
+    </div>
+
+    <!-- SYSTEM FOOTER -->
+    <footer class="site-footer" style="margin-top: 80px;">
+        <p><strong>CrimeLens</strong> Case Study. Built with Flask, Pandas, Scikit-Learn, and Chart.js.</p>
     </footer>
+
 </body>
 </html>

@@ -81,5 +81,50 @@ def api_action_brief(state):
         return jsonify({'error': 'State not found'}), 404
     return jsonify(result)
 
+@app.route('/api/state-summary')
+def api_state_summary():
+    from analysis import get_state_detailed_summary
+    return jsonify(get_state_detailed_summary(df))
+
+@app.route('/api/raw-explorer')
+def api_raw_explorer():
+    from flask import request
+    import pandas as pd
+    state = request.args.get('state', '').upper().strip()
+    year = request.args.get('year', '')
+    
+    # Filter by state
+    filtered = df
+    if state:
+        filtered = filtered[filtered['STATE/UT'] == state]
+    
+    # Filter by year if specified
+    if year:
+        try:
+            year_int = int(year)
+            filtered = filtered[filtered['YEAR'] == year_int]
+        except ValueError:
+            pass
+            
+    # Filter out summary rows (like "TOTAL", "TOTAL DISTRICTS")
+    if 'DISTRICT' in filtered.columns:
+        filtered = filtered[~filtered['DISTRICT'].str.upper().str.contains('TOTAL', na=False)]
+        filtered = filtered.sort_values(['DISTRICT', 'YEAR'])
+    
+    # Take the top 100 records for performance
+    records = []
+    for _, row in filtered.head(100).iterrows():
+        records.append({
+            'district': row.get('DISTRICT', 'N/A'),
+            'year': int(row.get('YEAR', 0)),
+            'total_crimes': int(row.get('TOTAL IPC CRIMES', 0)) if not pd.isna(row.get('TOTAL IPC CRIMES', 0)) else 0,
+            'murder': int(row.get('MURDER', 0)) if not pd.isna(row.get('MURDER', 0)) else 0,
+            'rape': int(row.get('RAPE', 0)) if not pd.isna(row.get('RAPE', 0)) else 0,
+            'theft': int(row.get('THEFT', 0)) if not pd.isna(row.get('THEFT', 0)) else 0,
+            'robbery': int(row.get('ROBBERY', 0)) if not pd.isna(row.get('ROBBERY', 0)) else 0,
+            'riots': int(row.get('RIOTS', 0)) if not pd.isna(row.get('RIOTS', 0)) else 0
+        })
+    return jsonify(records)
+
 if __name__ == '__main__':
     app.run(debug=True)

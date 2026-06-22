@@ -3,56 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Insights - CrimeLens</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <title>Technical Insights — CrimeLens Case Study</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="bg-shape bg-shape-a"></div>
-    <div class="bg-shape bg-shape-b"></div>
 
+    <!-- SYSTEM NAVIGATION -->
     <nav class="site-nav">
         <a href="/" class="brand">CrimeLens</a>
         <div class="nav-links">
-            <a href="/">Dashboard</a>
-            <a href="/about">About</a>
-            <a href="/insights">Insights</a>
+            <a href="/">Case Study</a>
+            <a href="/map">Interactive Map</a>
+            <a href="/about">About Project</a>
+            <a href="/insights" class="active">Technical Insights</a>
         </div>
     </nav>
 
-    <main class="page-main">
-        <section class="page-card">
-            <h1>Key Insights</h1>
-            <p>
-                This page summarizes the practical value of your analytics and prediction model.
-                You can refine these points as you discover stronger findings.
+    <div class="case-study-container" style="max-width: 800px; gap: 32px; padding-top: 40px;">
+        
+        <div class="section-header">
+            <span class="section-label">Methodology // Insights</span>
+            <h1 class="section-title">Technical Specifications</h1>
+            <p class="section-description">A review of model parameters, anomaly thresholds, and policy recommendations.</p>
+        </div>
+
+        <div class="panel">
+            <h2 class="chart-title" style="margin-bottom: 12px; font-size: 1.25rem;">Machine Learning Architecture</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                The risk prediction engine uses a <strong>Random Forest Classifier</strong> trained on historical features engineered from annual crime records.
             </p>
-        </section>
-
-        <section class="page-card">
-            <h2>How to Read Risk Levels</h2>
-            <ul class="page-list">
-                <li>Low: relatively lower historical crime score</li>
-                <li>Medium: moderate concentration of reported IPC crimes</li>
-                <li>High: consistently elevated crime trends</li>
-                <li>Critical: top-range crime burden in historical records</li>
+            <ul class="brief-interventions" style="margin-top: 8px; margin-bottom: 16px;">
+                <li><strong>Class labels:</strong> Risk categories are defined by normalizing total crime volumes into four bands: Low (&le; 25), Medium (&le; 50), High (&le; 75), and Critical (&gt; 75).</li>
+                <li><strong>Engineered inputs:</strong> In addition to raw volumes, the classifier utilizes the YoY percentage changes and the ratio of violent crimes (Murder + Rape + Robbery) to total IPC cases.</li>
+                <li><strong>Local Explainability:</strong> Features are extracted per prediction to show local impact percentages, helping municipal planners understand what drove a high/critical risk rating.</li>
             </ul>
-        </section>
+        </div>
 
-        <section class="page-card">
-            <h2>Suggested Next Upgrades</h2>
-            <ul class="page-list">
-                <li>Add district-level drill-down for finer insights</li>
-                <li>Add model explanation for each state prediction</li>
-                <li>Add anomaly flags for sudden year-over-year changes</li>
+        <div class="panel">
+            <h2 class="chart-title" style="margin-bottom: 12px; font-size: 1.25rem;">z-Score Anomaly Methodology</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 16px;">
+                Statistical anomaly detection is performed at startup using calculated standard deviations from each state's historical mean volume:
+            </p>
+            <div style="font-family: monospace; background: var(--bg-main); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 16px; font-size: 13px;">
+                z = (X - &mu;) / &sigma;
+            </div>
+            <p style="color: var(--text-secondary);">
+                Years where the absolute z-score exceeds 1.5 are flagged as anomalous. High positive z-scores represent unusual, non-linear crime spikes, indicating the potential influence of external factors (e.g., policy shifts, reporting changes, localized crises) that warrant targeted municipal investigation.
+            </p>
+        </div>
+
+        <div class="panel">
+            <h2 class="chart-title" style="margin-bottom: 12px; font-size: 1.25rem;">Future Roadmap</h2>
+            <ul class="brief-interventions" style="margin-top: 8px;">
+                <li>Transition from state-level aggregation to district-level drill-down capabilities for granular localized modeling.</li>
+                <li>Incorporate secondary external parameters (such as demographic density and local economic indices) to enrich feature weights.</li>
+                <li>Train recurrent deep-learning networks (LSTMs) for time-series volume forecasting to augment the classification output.</li>
             </ul>
-        </section>
-    </main>
+        </div>
 
-    <footer class="site-footer">
-        <p>CrimeLens • From charts to actionable insights</p>
+    </div>
+
+    <!-- SYSTEM FOOTER -->
+    <footer class="site-footer" style="margin-top: 80px;">
+        <p><strong>CrimeLens</strong> Case Study. Built with Flask, Pandas, Scikit-Learn, and Chart.js.</p>
     </footer>
+
 </body>
 </html>
